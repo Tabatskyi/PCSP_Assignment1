@@ -6,68 +6,74 @@ using std::chrono::nanoseconds;
 using std::chrono::duration_cast;
 using std::chrono::high_resolution_clock;
 
-static std::vector<std::vector<std::vector<int>>> matrices;
+static std::vector<std::vector<std::vector<std::size_t>>> matrices;
 
-static std::vector<std::vector<int>> createMatrix(const std::size_t n)
+static std::vector<std::vector<std::size_t>> createMatrix(const std::size_t n)
 {
-	std::vector<std::vector<int>> matrix(n, std::vector<int>(n));
-	for (std::size_t i = 0; i < n; ++i)
-		for (std::size_t j = 0; j < n; ++j)
-			matrix[i][j] = i * n + j;
-	
-	return matrix;
+    std::vector<std::vector<std::size_t>> matrix(n, std::vector<std::size_t>(n));
+    for (std::size_t i = 0; i < n; ++i)
+        for (std::size_t j = 0; j < n; ++j)
+            matrix[i][j] = i * n + j;
+
+    return matrix;
 }
 
 static void compute(const std::size_t i, const std::size_t k1, const std::size_t k2)
 {
-	std::vector<std::vector<int>> matrix = matrices[i];
-	std::size_t n = matrix.size();
-	std::vector<std::vector<int>> result(n, std::vector<int>(n));
+    std::vector<std::vector<std::size_t>> matrix = matrices[i];
+    std::size_t n = matrix.size();
+    std::vector<std::vector<std::size_t>> result(n, std::vector<std::size_t>(n));
 
-	auto payload_begin = high_resolution_clock::now();
+    auto payload_begin = high_resolution_clock::now();
 
-	for (std::size_t i = 0; i < n; ++i)
-		for (std::size_t j = 0; j < n; ++j)
-			result[i][j] = k1 * matrix[i][j] + k2 * matrix[i][j];
+    for (std::size_t i = 0; i < n; ++i)
+        for (std::size_t j = 0; j < n; ++j)
+            result[i][j] = k1 * matrix[i][j] + k2 * matrix[i][j];
 
-	auto payload_end = high_resolution_clock::now();
-	auto elapsed = duration_cast<nanoseconds>(payload_end - payload_begin);
-	std::cout << std::format("Payload Time for {}x{} matrix: {} seconds.\n", n, n, elapsed.count() * 1e-9);
+    auto payload_end = high_resolution_clock::now();
+    auto elapsed = duration_cast<nanoseconds>(payload_end - payload_begin);
+    std::cout << std::format("Payload Time for {}x{} matrix: {} seconds.\n", n, n, elapsed.count() * 1e-9);
 }
 
-int main() 
+static void threadFunction(std::size_t threadIndex, std::size_t numOfThread, std::size_t k1, std::size_t k2)
 {
-	std::vector<std::size_t> numOfThreads = { 1, 2, 4, 8, 16, 32, 64, 128 };
-	std::vector<std::size_t> ns = { 50, 100, 500, 1000, 10000 };
-	std::vector<std::thread> threads;
+    for (std::size_t j = threadIndex; j < matrices.size(); j += numOfThread)
+    {
+        compute(j, k1, k2);
+		std::cout << std::format("Thread {} finished computing matrix {}.\n", threadIndex, j);
+    }
+}
 
-	for (const std::size_t n : ns)
-	{
-		std::vector<std::vector<int>> matrix = createMatrix(n);
-		matrices.push_back(matrix);
-	}
+int main()
+{
+    std::vector<std::size_t> numOfThreads = { 1, 2, 4, 8, 16, 32, 64, 128 };
+    std::vector<std::size_t> ns = { 10000, 1000, 500, 100, 50 };
 
-	for (const auto& numOfThread : numOfThreads)
-	{
-		auto begin = high_resolution_clock::now();
-		std::size_t i = 0;
-		for (std::size_t i = 0; i < matrices.size(); i++)
-		{
-			std::size_t k1 = 2;
-			std::size_t k2 = 3;
-			for (std::size_t j = 0; j < numOfThread || j < ns.size(); j++)
-				threads.push_back(std::thread(compute, i, k1, k2));
-		}
+    for (std::size_t n : ns)
+    {
+        std::vector<std::vector<std::size_t>> matrix = createMatrix(n);
+        matrices.push_back(matrix);
+    }
 
-		auto end = high_resolution_clock::now();
-		auto elapsed = duration_cast<nanoseconds>(end - begin);
+    for (const auto& numOfThread : numOfThreads)
+    {
+        std::vector<std::thread> threads;
+        std::size_t k1 = 212773123;
+        std::size_t k2 = 313241244;
 
-		std::cout << std::format("Total Time for {} threads: {} seconds.\n", numOfThread, elapsed.count() * 1e-9);
-	}
+        for (std::size_t i = 0; i < numOfThread; ++i)
+            threads.push_back(std::thread(threadFunction, i, numOfThread, k1, k2));
 
+        auto begin = high_resolution_clock::now();
 
-	for (auto& thread : threads)
-		thread.join();
+        for (auto& thread : threads)
+            thread.join();
 
-	return 0;
+        auto end = high_resolution_clock::now();
+        auto elapsed = duration_cast<nanoseconds>(end - begin);
+
+        std::cout << std::format("Total Time for {} threads: {} seconds.\n", threads.size(), elapsed.count() * 1e-9);
+    }
+
+    return 0;
 }
