@@ -71,7 +71,6 @@ int main()
             threads.push_back(std::thread(threadFunction, i, numOfThread, k1, k2, std::ref(matrixTimeFile)));
 
         auto begin = high_resolution_clock::now();
-		std::cout << std::format("Starting {} threads.\n", threads.size());
         for (auto& thread : threads)
             thread.join();
 
