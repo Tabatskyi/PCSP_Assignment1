@@ -11,8 +11,16 @@ for filename in os.listdir(directory):
         x_column = data.columns[0] 
         y_column = data.columns[1] 
         fig, ax = plt.subplots() 
-        ax.plot(data[x_column], data[y_column])
+        ax.set_xlabel(x_column.capitalize())
+        ax.set_ylabel(y_column.capitalize())
 
+        ax.set_xticks(range(len(data[x_column])))
+        ax.set_xticklabels(data[x_column].astype('str'))
+
+        for i, txt in enumerate(data[y_column]):
+            ax.annotate(txt, (i, data[y_column][i]))
+
+        ax.plot(range(len(data[x_column])), data[y_column])
         ax.invert_yaxis()
 
         plot_filename = os.path.splitext(filename)[0] + '.png'

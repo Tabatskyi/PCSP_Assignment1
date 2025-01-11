@@ -35,7 +35,7 @@ static void compute(const std::size_t i, const std::size_t k1, const std::size_t
     auto elapsed = duration_cast<nanoseconds>(payload_end - payload_begin);
 	auto elapsed_count = elapsed.count() * 1e-9;
 
-    matrixTimeFile << n << "," << elapsed_count << "\n";
+    matrixTimeFile << std::format("{},{}\n", n, elapsed_count);
     std::cout << std::format("Payload Time for {}x{} matrix: {} seconds.\n", n, n, elapsed_count);
 }
 
@@ -65,7 +65,7 @@ int main()
         std::size_t k2 = 8332412445367;
 
         std::ofstream matrixTimeFile("matrix_time.csv");
-        matrixTimeFile << "matrix_size(n),time\n";
+        matrixTimeFile << "matrix size (n),time\n";
 
         for (std::size_t i = 0; i < numOfThread; ++i)
             threads.push_back(std::thread(threadFunction, i, numOfThread, k1, k2, std::ref(matrixTimeFile)));
